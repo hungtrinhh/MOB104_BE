@@ -107,5 +107,22 @@ class ClassroomController {
     res.status(204).send();
   };
 
+  static getListClassRoomByTeacherId = async (req: Request, res: Response) => {
+    const teacherId = parseInt(req.params.teacherId);
+
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    let classroomByTeacherid = await queryRunner.manager.query('SELECT tbl_classrooms.id AS classroom_id, tbl_classrooms.name AS classroom_name, tbl_classrooms.description AS classroom_description ,COUNT(tbl_students.id) AS student_count FROM tbl_teachers INNER  JOIN tbl_classrooms ON tbl_teachers.id = tbl_classrooms.teacher_id INNER JOIN tbl_class_students ON tbl_classrooms.id = tbl_class_students.classroom_id INNER JOIN tbl_students ON tbl_students.id = tbl_class_students.student_id WHERE tbl_teachers.id = "' + teacherId + '" AND tbl_class_students.semester = 1 GROUP BY tbl_class_students.classroom_id')
+    if (classroomByTeacherid === 0) {
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Không tìm thấy thông tin lớp!'
+      }); 
+    } else {
+      res.status(200).send({ error: false, data: classroomByTeacherid });
+    }
+  };
 }
 export default ClassroomController;
