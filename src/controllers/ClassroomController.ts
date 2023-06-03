@@ -88,6 +88,24 @@ class ClassroomController {
     res.status(204).send();
   };
 
-  
+  static deleteClassRoom = async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    const classRoomRepository = AppDataSource.getRepository(Classroom);
+    let classroom: Classroom;
+    try {
+      classroom = await classRoomRepository.findOneOrFail({ where: { id } });
+    } catch (error) {
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Không tìm thấy thông tin lớp!'
+      });
+      return;
+    }
+    classRoomRepository.delete(id);
+    //After all send a 204 (no content, but accepted) response
+    res.status(204).send();
+  };
+
 }
 export default ClassroomController;
