@@ -50,6 +50,44 @@ class ClassroomController {
     res.status(200).send({ error: false, data: classroom });
 
   };
+  static editClassRoom = async (req: Request, res: Response) => {
+    //Get values from the body
+    const { id, name, description, subject, teacher_id } = req.body;
+    //Try to find user on database
+    const classRoomRepository = AppDataSource.getRepository(Classroom);
+    let classroom: Classroom;
+    try {
+      classroom = await classRoomRepository.findOneOrFail({
+        where: { id }
+      });
+    } catch (error) {
+      //If not found, send a 404 response
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Lớp không tồn tại!'
+      });
+      return;
+    }
+    //Validate the new values on model
+
+    classroom.name = name;
+    classroom.description = description;
+    classroom.subject = subject;
+    classroom.teacherId = teacher_id;
+    const errors = await validate(classroom);
+    if (errors.length > 0) {
+      res.status(400).send({
+        error: true,
+        code: 400,
+        message: errors[0].constraints
+      });
+      return;
+    }
+    await classRoomRepository.save(classroom);
+    res.status(204).send();
+  };
+
   
 }
 export default ClassroomController;
