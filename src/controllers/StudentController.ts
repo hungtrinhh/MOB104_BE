@@ -96,7 +96,68 @@ export class StudentController {
     });
   };
 
- 
+  static editStudent = async (req: Request, res: Response) => {
+    const studentData: studentObj = req.body.student;
+    const studentScore = req.body.scores;
+    const studentDetailRepository = AppDataSource.getRepository(ClassStudent);
+    const studentRepository = AppDataSource.getRepository(Student);
+    const scoreUpdate = [];
+    studentScore.forEach((item: studentDetail) => {
+      const score = new ClassStudent();
+      score.id = item.id;
+      score.classroomId = item.classroom_id;
+      score.studentId = item.student_id;
+      score.regularScore1 = item.regular_score_1 ? item.regular_score_1 : null;
+      score.regularScore2 = item.regular_score_2 ? item.regular_score_2 : null;
+      score.regularScore3 = item.regular_score_3 ? item.regular_score_3 : null;
+      score.midtermScore = item.midterm_score ? item.midterm_score : null;
+      score.finalScore = item.final_score ? item.final_score : null;
+      score.semester = item.semester;
+      scoreUpdate.push(score);
+    });
+    let student: Student;
+    try {
+      student = await studentRepository.findOneOrFail({
+        where: { id: studentData.id }
+      });
+    } catch (error) {
+      //If not found, send a 404 response
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Học sinh không tồn tại!'
+      });
+      return;
+    }
+    //Validate the new values on model
+    student.name = studentData.name;
+    student.dob = studentData.dob;
+    student.gender = studentData.gender;
+    student.parentId = studentData.parent_id;
+    const errors = await validate(student);
+    if (errors.length > 0) {
+      res.status(400).send({
+        error: true,
+        code: 400,
+        message: errors[0].constraints
+      });
+      return;
+    }
+    try {
+      await studentRepository.save(student);
+      await studentDetailRepository.save(scoreUpdate);
+      res.status(204).send();
+    } catch (e) {
+      console.log(e);
+      res.status(500).send({
+        error: true,
+        code: 500,
+        message: 'Server error!'
+      });
+    }
+  };
+
+  
 }
 
 export default StudentController;
