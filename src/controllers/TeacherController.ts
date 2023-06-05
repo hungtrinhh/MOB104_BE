@@ -15,6 +15,26 @@ class TeacherController {
     res.send(teachers);
   };
 
+  static getOneById = async (req: Request, res: Response) => {
+    //Get the ID from the url
+    const id: number = parseInt(req.params.id);
+    //Get the user from database
+    const teacherRepository = AppDataSource.getRepository(Teacher);
+    try {
+      const user = await teacherRepository.findOneOrFail({
+        where: { id: id },
+        select: ['id', 'name', 'email', 'phone', 'dob']
+      });
+      res.send({ error: false, data: user });
+    } catch (error) {
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Không tìm thấy giáo viên!'
+      });
+    }
+  };
+
   
 }
 
