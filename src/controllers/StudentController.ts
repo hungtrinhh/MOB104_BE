@@ -223,6 +223,26 @@ export class StudentController {
     }
   };
 
+  static getListStudentByParentId = async (req: Request, res: Response) => {
+    const parentId = req.params.parentId;
+    const studentRepository = AppDataSource.getRepository(Student);
+    try {
+      const students = await studentRepository.find({
+        where: { parentId: { id: parentId } },
+        select: ['id', 'name', 'gender', 'dob'],
+        loadRelationIds: true
+      });
+      res.status(200).send({ error: false, code: 200, data: students });
+    } catch (error) {
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Không tìm thấy thông tin học sinh'
+      });
+      return;
+    }
+  };
+
   
 }
 
