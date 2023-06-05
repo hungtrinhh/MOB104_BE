@@ -157,7 +157,35 @@ export class StudentController {
     }
   };
 
-  
+  static deleteStudent = async (req: Request, res: Response) => {
+    const id = req.params.id;
+    const studentRepository = AppDataSource.getRepository(Student);
+    try {
+      await studentRepository.findOneOrFail({ where: { id } });
+    } catch (error) {
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Không tìm thấy thông tin học sinh'
+      });
+      return;
+    }
+    studentRepository
+      .delete(id)
+      .then(() => {
+        res.status(204).send();
+      })
+      .catch(e => {
+        console.log(e);
+        res.status(500).send({
+          error: true,
+          code: 500,
+          message: 'Server error'
+        });
+      });
+  };
+
+ 
 }
 
 export default StudentController;
