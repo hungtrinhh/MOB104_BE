@@ -100,6 +100,61 @@ class TeacherController {
     });
   };
 
+  static editUser = async (req: Request, res: Response) => {
+    //Get values from the body
+    const { id, name, email, dob, phone } = req.body;
+
+    //Try to find user on database
+    const teacherRepository = AppDataSource.getRepository(Teacher);
+    let teacher: Teacher;
+    try {
+      teacher = await teacherRepository.findOneOrFail({
+        where: { id }
+      });
+    } catch (error) {
+      //If not found, send a 404 response
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Giáo viên không tồn tại!'
+      });
+      return;
+    }
+
+    //Validate the new values on model
+    if(email === ""){
+      teacher.email = null;
+    }else{
+      teacher.email = email;
+    }
+    teacher.name = name;
+    teacher.dob = dob;
+    teacher.phone = phone;
+    const errors = await validate(teacher);
+    if (errors.length > 0) {
+      res.status(400).send({
+        error: true,
+        code: 400,
+        message: errors[0].constraints
+      });
+      return;
+    }
+
+    //Try to safe, if fails, that means username already in use
+    try {
+      await teacherRepository.save(teacher);
+    } catch (e) {
+      res.status(409).send({
+        error: true,
+        code: 409,
+        message: 'Email hoặc số điện thoại đã tồn tại trên hệ thống!'
+      });
+      return;
+    }
+    //After all send a 204 (no content, but accepted) response
+    res.status(204).send();
+  };
+
   
 }
 
