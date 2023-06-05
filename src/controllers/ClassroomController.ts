@@ -5,11 +5,16 @@ import { Classroom } from '../entity/Classroom';
 
 class ClassroomController {
   static newClassroom = async (req: Request, res: Response) => {
-    let { name, description, subject, teacher_id } = req.body;
-    let classroom = new Classroom();
-    classroom.name = name;
-    classroom.description = description;
-    classroom.subject = subject;
+    const {
+      classroom_name,
+      classroom_description,
+      classroom_subject,
+      teacher_id
+    } = req.body;
+    const classroom = new Classroom();
+    classroom.name = classroom_name;
+    classroom.description = classroom_description;
+    classroom.subject = classroom_subject;
     classroom.teacherId = teacher_id;
 
     const errors = await validate(classroom);
@@ -42,23 +47,27 @@ class ClassroomController {
   };
 
   static listAll = async (req: Request, res: Response) => {
-    const queryRunner = AppDataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    let classroom = await queryRunner.manager.query('SELECT tbl_classrooms.name, tbl_classrooms.description, tbl_classrooms.subject, tbl_classrooms.teacher_id,COUNT(tbl_students.id) AS count FROM tbl_classrooms INNER JOIN tbl_class_students  ON tbl_class_students.classroom_id = tbl_classrooms.id INNER JOIN tbl_students ON tbl_class_students.student_id = tbl_students.id WHERE tbl_class_students.semester = 1 GROUP BY tbl_classrooms.id')
+    const queryRunner = AppDataSource.manager;
+    const classroom = await queryRunner.query(
+      'SELECT tbl_classrooms.name, tbl_classrooms.description, tbl_classrooms.subject, tbl_classrooms.teacher_id,COUNT(tbl_students.id) AS count FROM tbl_classrooms INNER JOIN tbl_class_students  ON tbl_class_students.classroom_id = tbl_classrooms.id INNER JOIN tbl_students ON tbl_class_students.student_id = tbl_students.id WHERE tbl_class_students.semester = 1 GROUP BY tbl_classrooms.id'
+    );
     res.status(200).send({ error: false, data: classroom });
-
   };
   static editClassRoom = async (req: Request, res: Response) => {
     //Get values from the body
-    const { id, name, description, subject, teacher_id } = req.body;
+    const {
+      classroom_id,
+      classroom_name,
+      classroom_description,
+      classroom_subject,
+      teacher_id
+    } = req.body;
     //Try to find user on database
     const classRoomRepository = AppDataSource.getRepository(Classroom);
     let classroom: Classroom;
     try {
       classroom = await classRoomRepository.findOneOrFail({
-        where: { id }
+        where: { id: classroom_id }
       });
     } catch (error) {
       //If not found, send a 404 response
@@ -71,9 +80,9 @@ class ClassroomController {
     }
     //Validate the new values on model
 
-    classroom.name = name;
-    classroom.description = description;
-    classroom.subject = subject;
+    classroom.name = classroom_name;
+    classroom.description = classroom_description;
+    classroom.subject = classroom_subject;
     classroom.teacherId = teacher_id;
     const errors = await validate(classroom);
     if (errors.length > 0) {
@@ -84,16 +93,29 @@ class ClassroomController {
       });
       return;
     }
-    await classRoomRepository.save(classroom);
-    res.status(204).send();
+    classRoomRepository
+      .save(classroom)
+      .then(() => {
+        res.status(204).send();
+      })
+      .catch(e => {
+        console.log(e);
+        res.status(500).send({
+          error: true,
+          code: 500,
+          message: 'Server error'
+        });
+      });
   };
 
   static deleteClassRoom = async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const classRoomRepository = AppDataSource.getRepository(Classroom);
-    let classroom: Classroom;
+
     try {
-      classroom = await classRoomRepository.findOneOrFail({ where: { id } });
+      await classRoomRepository.findOneOrFail({
+        where: { id }
+      });
     } catch (error) {
       res.status(404).send({
         error: true,
@@ -102,26 +124,36 @@ class ClassroomController {
       });
       return;
     }
-    classRoomRepository.delete(id);
-    //After all send a 204 (no content, but accepted) response
-    res.status(204).send();
+    classRoomRepository
+      .delete(id)
+      .then(() => {
+        res.status(204).send();
+      })
+      .catch(e => {
+        console.log(e);
+        res.status(500).send({
+          error: true,
+          code: 500,
+          message: 'Server error'
+        });
+      });
   };
 
   static getListClassRoomByTeacherId = async (req: Request, res: Response) => {
     const teacherId = parseInt(req.params.teacherId);
+    const queryRunner = AppDataSource.manager;
+    const classroomByTeacherId = await queryRunner.query(
+      `SELECT tbl_classrooms.id AS 'classroom_id', tbl_classrooms.name AS 'classroom_name', tbl_classrooms.description AS 'classroom_description', tbl_classrooms.subject AS 'classroom_subject', ROUND(COUNT(tbl_class_students.student_id) / 2) AS 'classroom_count', tbl_teachers.id AS 'teacher_id' FROM tbl_teachers LEFT JOIN tbl_classrooms on tbl_teachers.id = tbl_classrooms.teacher_id LEFT JOIN tbl_class_students ON tbl_classrooms.id = tbl_class_students.classroom_id WHERE tbl_classrooms.teacher_id is not null AND tbl_classrooms.teacher_id = ${teacherId} GROUP BY tbl_classrooms.id`
+    );
 
-    const queryRunner = AppDataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    let classroomByTeacherid = await queryRunner.manager.query('SELECT tbl_classrooms.id AS classroom_id, tbl_classrooms.name AS classroom_name, tbl_classrooms.description AS classroom_description ,COUNT(tbl_students.id) AS student_count FROM tbl_teachers INNER  JOIN tbl_classrooms ON tbl_teachers.id = tbl_classrooms.teacher_id INNER JOIN tbl_class_students ON tbl_classrooms.id = tbl_class_students.classroom_id INNER JOIN tbl_students ON tbl_students.id = tbl_class_students.student_id WHERE tbl_teachers.id = "' + teacherId + '" AND tbl_class_students.semester = 1 GROUP BY tbl_class_students.classroom_id')
-    if (classroomByTeacherid === 0) {
+    if (classroomByTeacherId.length === 0) {
       res.status(404).send({
         error: true,
         code: 404,
         message: 'Không tìm thấy thông tin lớp!'
-      }); 
+      });
     } else {
-      res.status(200).send({ error: false, data: classroomByTeacherid });
+      res.status(200).send({ error: false, data: classroomByTeacherId });
     }
   };
 }
