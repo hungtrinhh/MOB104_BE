@@ -55,6 +55,51 @@ class TeacherController {
     }
   };
 
+  static newTeacher = async (req: Request, res: Response) => {
+    //Get parameters from the body
+    const { phone, password, name, email } = req.body;
+    const teacher = new Teacher();
+    teacher.phone = phone;
+    teacher.password = password;
+    teacher.name = name;
+    teacher.email = email;
+
+    //Validade if the parameters are ok
+    const errors = await validate(teacher);
+    if (errors.length > 0) {
+      res.status(400).send({
+        error: true,
+        code: 400,
+        message: errors[0].constraints
+      });
+      return;
+    }
+
+    //Hash the password, to securely store on DB
+    teacher.hashPassword();
+
+    //Try to save. If fails, the username is already in use
+    const teacherRepository = AppDataSource.getRepository(Teacher);
+    try {
+      await teacherRepository.save(teacher);
+    } catch (e) {
+      console.log(e);
+      res.status(409).send({
+        error: true,
+        code: 409,
+        message:
+          'Email hoặc số điện thoại đã được đăng ký, vui lòng đăng nhập hoặc thử lại với thông tin khác!'
+      });
+      return;
+    }
+    //If all ok, send 201 response
+    res.status(201).send({
+      error: false,
+      code: 201,
+      message: 'Đăng ký thành công!'
+    });
+  };
+
   
 }
 
