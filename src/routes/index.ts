@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import classroom from './classroom';
+import auth from './auth';
+import student from './student';
+
 const routes = Router();
 
-
-routes.use('/classroom', classroom);
-
+routes.use('/auth', auth);
+routes.use('/student', student);
 
 export default routes;
