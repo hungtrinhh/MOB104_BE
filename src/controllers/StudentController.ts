@@ -243,7 +243,84 @@ export class StudentController {
     }
   };
 
-  
+  static importListData = async (req: Request, res: Response) => {
+    const parentRepository = AppDataSource.getRepository(Parent);
+    const studentRepository = AppDataSource.getRepository(Student);
+    const studentDetailRepository = AppDataSource.getRepository(ClassStudent);
+    const students = req.body.students;
+    const classroomId = req.body.classroom_id;
+    const parents = req.body.parents;
+    const studentList = await studentRepository.find();
+    const parentList = await parentRepository.find();
+    const studentArr = [];
+    students.forEach((item: studentObj) => {
+      const studentTmp = studentList.filter(item2 => {
+        return item.name === item2.name && item.dob === item2.dob;
+      });
+      if (studentTmp.length === 0) {
+        const student = new Student();
+        student.id = item.id;
+        student.dob = item.dob;
+        student.name = item.name;
+        student.gender = item.gender;
+        const parentTmpId = parentList.filter(
+          p => p.phone === item.parent_phone
+        );
+        if (parentTmpId.length === 0) {
+          student.parentId = item.parent_id;
+        } else {
+          student.parentId = parentTmpId[0];
+        }
+        studentArr.push(student);
+      } else {
+        studentArr.push(studentTmp[0]);
+      }
+    });
+    const parentArr = [];
+    parents.forEach(async (item: parentObj) => {
+      if (parentList.findIndex(o => o.phone === item.parent_phone) === -1) {
+        const parent = new Parent();
+        parent.id = item.parent_id;
+        parent.name = item.parent_name;
+        parent.phone = item.parent_phone;
+        parent.password = '123456';
+        parent.hashPassword();
+        parentArr.push(parent);
+      }
+    });
+    const studentDetailArr = [];
+    studentArr.forEach(item => {
+      for (let i = 1; i <= 2; i++) {
+        const studentDetail = new ClassStudent();
+        studentDetail.classroomId = classroomId;
+        studentDetail.studentId = item.id;
+        studentDetail.semester = i;
+        studentDetailArr.push(studentDetail);
+      }
+    });
+    try {
+      const parentInsertResult = await parentRepository.save(parentArr);
+      const studentInsertResult = await studentRepository.save(studentArr);
+      const studentDetailResult = await studentDetailRepository.save(
+        studentDetailArr
+      );
+      res.status(201).send({
+        error: false,
+        code: 201,
+        parentInserted: parentInsertResult.length,
+        studentInserted: studentInsertResult.length,
+        stdInserted: studentDetailResult.length
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(500).send({
+        error: true,
+        code: 500,
+        message: 'Server error!'
+      });
+      return;
+    }
+  };
 }
 
 export default StudentController;
