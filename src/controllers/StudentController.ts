@@ -185,7 +185,45 @@ export class StudentController {
       });
   };
 
- 
+  static getOneById = async (req: Request, res: Response) => {
+    const id = req.params.id;
+    const classId = parseInt(req.params.classId);
+    const studentRepository = AppDataSource.getRepository(Student);
+    const studentDetailRepository = AppDataSource.getRepository(ClassStudent);
+    const parentRepository = AppDataSource.getRepository(Parent);
+    try {
+      let student = await studentRepository
+        .createQueryBuilder('student')
+        .where('student.id = :id', { id })
+        .loadAllRelationIds()
+        .getOneOrFail();
+      const parent = await parentRepository.findOneOrFail({
+        where: { id: '' + student.parentId }
+      });
+      student = {
+        ...student,
+        parentId: parent
+      };
+      const scoreDetail = await studentDetailRepository.find({
+        where: { studentId: { id }, classroomId: { id: classId } },
+        loadRelationIds: true
+      });
+      res.status(200).send({
+        error: false,
+        data: { student, scores: scoreDetail }
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Không tìm thấy thông tin học sinh'
+      });
+      return;
+    }
+  };
+
+  
 }
 
 export default StudentController;
