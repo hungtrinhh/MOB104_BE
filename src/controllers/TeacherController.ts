@@ -155,7 +155,34 @@ class TeacherController {
     res.status(204).send();
   };
 
-  
+  static deleteUser = async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    const teacherRepository = AppDataSource.getRepository(Teacher);
+    let user: Teacher;
+    try {
+      user = await teacherRepository.findOneOrFail({ where: { id: id } });
+    } catch (error) {
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Không tìm thấy thông tin giáo viên'
+      });
+      return;
+    }
+    teacherRepository
+      .delete(id)
+      .then(() => {
+        res.status(204).send();
+      })
+      .catch(e => {
+        console.log(e);
+        res.status(500).send({
+          error: true,
+          code: 500,
+          message: 'Server error'
+        });
+      });
+  };
 }
 
 export default TeacherController;
