@@ -201,6 +201,36 @@ class ClassroomController {
     res.status(204).send();
   };
 
+  static deleteClassStudent = async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    const classStudentRepository = AppDataSource.getRepository(ClassStudent);
+    try {
+      await classStudentRepository.findOneOrFail({
+        where: { id }
+      });
+    } catch (error) {
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Không tìm thấy thông tin Lớp'
+      });
+      return;
+    }
+    classStudentRepository
+      .delete(id)
+      .then(() => {
+        res.status(204).send();
+      })
+      .catch(e => {
+        console.log(e);
+        res.status(500).send({
+          error: true,
+          code: 500,
+          message: 'Server error'
+        });
+      });
+  };
+
   
 }
 export default ClassroomController;
