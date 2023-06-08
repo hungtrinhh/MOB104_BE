@@ -91,6 +91,55 @@ class ClassroomController {
     }
   };
 
-  
+  static newClassStudent = async (req: Request, res: Response) => {
+    const {
+      classroom_Id,
+      student_Id,
+      regularScore1,
+      regularScore2,
+      regularScore3,
+      midtermScore,
+      finalScore,
+      semester
+    } = req.body;
+    const classStudent = new ClassStudent();
+    classStudent.classroomId = classroom_Id;
+    classStudent.studentId = student_Id;
+    classStudent.regularScore1 = regularScore1;
+    classStudent.regularScore2 = regularScore2;
+    classStudent.regularScore3 = regularScore3;
+    classStudent.midtermScore = midtermScore;
+    classStudent.finalScore = finalScore;
+    classStudent.semester = semester;
+
+    const errors = await validate(ClassStudent);
+    if (errors.length > 0) {
+      res.status(400).send({
+        error: true,
+        code: 400,
+        message: errors[0].constraints
+      });
+      return;
+    }
+    const classStudentRepository = AppDataSource.getRepository(ClassStudent);
+    try {
+      await classStudentRepository.save(classStudent);
+    } catch (e) {
+      console.log(e);
+      res.status(500).send({
+        error: true,
+        code: 500,
+        message: 'Server error'
+      });
+      return;
+    }
+    res.status(201).send({
+      error: false,
+      code: 201,
+      message: 'Tạo thành công!'
+    });
+  };
+
+ 
 }
 export default ClassroomController;
