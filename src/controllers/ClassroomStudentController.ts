@@ -140,6 +140,67 @@ class ClassroomController {
     });
   };
 
- 
+  static editClassStudent = async (req: Request, res: Response) => {
+    //Get values from the body
+    const {
+      id,
+      studentId,
+      classroomId,
+      regularScore1,
+      regularScore2,
+      regularScore3,
+      midtermScore,
+      finalScore,
+      semester
+    } = req.body;
+
+    const classStudentRepository = AppDataSource.getRepository(ClassStudent);
+    let classStudent: ClassStudent;
+    try {
+      classStudent = await classStudentRepository.findOneOrFail({
+        where: { id }
+      });
+    } catch (error) {
+      //If not found, send a 404 response
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Class Student không tồn tại!'
+      });
+      return;
+    }
+    //Validate the new values on model
+    classStudent.classroomId = classroomId;
+    classStudent.studentId = studentId;
+    classStudent.regularScore1 = regularScore1;
+    classStudent.regularScore2 = regularScore2;
+    classStudent.regularScore3 = regularScore3;
+    classStudent.midtermScore = midtermScore;
+    classStudent.finalScore = finalScore;
+    classStudent.semester = semester;
+    const errors = await validate(classStudent);
+    if (errors.length > 0) {
+      res.status(400).send({
+        error: true,
+        code: 400,
+        message: errors[0].constraints
+      });
+      return;
+    }
+    try {
+      await classStudentRepository.save(classStudent);
+    } catch (e) {
+      res.status(500).send({
+        error: true,
+        code: 500,
+        message: 'Server Error!'
+      });
+      return;
+    }
+    //After all send a 204 (no content, but accepted) response
+    res.status(204).send();
+  };
+
+  
 }
 export default ClassroomController;
