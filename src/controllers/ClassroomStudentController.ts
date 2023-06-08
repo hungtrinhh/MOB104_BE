@@ -231,6 +231,35 @@ class ClassroomController {
       });
   };
 
-  
+  static importScore = async (req: Request, res: Response) => {
+    const scoreData = req.body.students_scores;
+    const classStudentRepository = AppDataSource.getRepository(ClassStudent);
+    const scoreArr = [];
+    scoreData.forEach(item => {
+      let score = new ClassStudent();
+      score.id = item.id;
+      score.classroomId = item.classroom_id;
+      score.studentId = item.student_id;
+      score.regularScore1 = item.regular_score_1;
+      score.regularScore2 = item.regular_score_2;
+      score.regularScore3 = item.regular_score_3;
+      score.midtermScore = item.midterm_score;
+      score.finalScore = item.final_score;
+      score.semester = item.semester;
+      scoreArr.push(score);
+    });
+    classStudentRepository
+      .save(scoreArr)
+      .then(result => {
+        res.send({
+          error: false,
+          dataChange: result.length
+        });
+      })
+      .catch(e => {
+        console.log(e);
+        res.status(500).send();
+      });
+  };
 }
 export default ClassroomController;
