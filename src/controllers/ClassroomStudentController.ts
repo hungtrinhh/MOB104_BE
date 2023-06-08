@@ -69,6 +69,28 @@ class ClassroomController {
     }
   };
 
- 
+  static deleteStudentInClassUser = async (req: Request, res: Response) => {
+    const idStudent = req.params.idStudent;
+    const idClassRoom = parseInt(req.params.idClass);
+    const queryRunner = AppDataSource.manager;
+    const deleteClassStudent = await queryRunner.query(
+      'DELETE FROM tbl_class_students  WHERE tbl_class_students.student_id = "' +
+        idStudent +
+        '" AND tbl_class_students.classroom_id = "' +
+        idClassRoom +
+        '"'
+    );
+    if (deleteClassStudent.length === 0) {
+      res.status(404).send({
+        error: true,
+        code: 404,
+        message: 'Học sinh hoặc lớp không tồn tại'
+      });
+    } else {
+      res.status(204).send({ error: false, data: deleteClassStudent });
+    }
+  };
+
+  
 }
 export default ClassroomController;
